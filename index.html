@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Provvigioni">
+<title>Calcolatore provvigioni manager</title>
+<style>
+  :root{--bg:#f4f6f8;--card:#fff;--ink:#16212b;--mut:#5d6b78;--line:#dfe5ea;--acc:#0f6b5c;--acc2:#e8f4f1;--red:#b91c1c}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  .wrap{max-width:720px;margin:0 auto;padding:16px}
+  h1{font-size:20px;margin:4px 0 2px}
+  .sub{color:var(--mut);font-size:14px;margin-bottom:14px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px}
+  .tabs{display:flex;gap:6px;margin-bottom:12px}
+  .tabs button{flex:1;padding:12px 8px;border:1px solid var(--line);background:#fff;border-radius:12px;font:600 14px inherit;font-family:inherit;color:var(--mut);cursor:pointer}
+  .tabs button.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+  label{display:block;font-size:13px;color:var(--mut);margin:10px 0 4px;font-weight:600}
+  input,textarea,select{width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;font:inherit;font-size:17px;background:#fff;color:var(--ink)}
+  textarea{min-height:72px;resize:vertical}
+  input:focus,textarea:focus,select:focus{outline:2px solid var(--acc);border-color:var(--acc)}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .hint{font-size:12px;color:var(--mut);margin-top:4px}
+  .rhead,.rrow{display:grid;grid-template-columns:1fr 1fr 62px 40px;gap:6px;align-items:center}
+  .rhead{font-size:12px;color:var(--mut);font-weight:600;margin:12px 0 4px}
+  .rrow{margin-bottom:8px}
+  .rrow input{padding:10px 8px;font-size:16px;min-width:0}
+  .rrow input.prim{border:2px solid var(--acc)}
+  .rrow input.sec{background:#f3f5f7;border:1px dashed #a9b4bd}
+  .rrow input.sec::placeholder{font-style:italic;color:#7b8794}
+  .rrow input.sec.man{background:#fff8d6;border:2px solid #d6a800}
+  .rrow button{height:44px;border:1px solid var(--line);background:#fff;border-radius:10px;font-size:22px;color:var(--mut);cursor:pointer}
+  .btn{flex:1;min-width:140px;text-align:center;padding:13px;border-radius:10px;border:1px solid var(--acc);background:#fff;color:var(--acc);font:600 15px inherit;font-family:inherit;cursor:pointer}
+  .btn.p{background:var(--acc);color:#fff}
+  .btns{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+  .opts{background:var(--acc2);border:1px solid #c5e3dc;border-radius:12px;padding:10px 12px;margin-top:12px}
+  .chk{display:flex;gap:10px;align-items:flex-start;margin:6px 0;font-size:15px;color:var(--ink);font-weight:600}
+  .chk input{width:22px;height:22px;margin:1px 0 0;flex:none}
+  table{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}
+  th,td{padding:8px 6px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+  th:first-child,td:first-child{text-align:left}
+  th{color:var(--mut);font-size:12px;font-weight:600}
+  .scroll{overflow-x:auto;margin-top:12px}
+  tr.loss td{background:#fee2e2}
+  .neg{color:var(--red);font-weight:700}
+  .pos{color:var(--acc);font-weight:700}
+  .msg1{font-size:14px;margin-top:12px;font-weight:600}
+  .note{font-size:12px;color:var(--mut);margin-top:8px}
+  .hide{display:none}
+  #prev{width:100%;border:1px solid var(--line);border-radius:10px;margin-top:10px;background:#fff}
+  .msg{font-size:13px;color:var(--acc);margin-top:6px;min-height:18px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Calcolatore provvigioni manager</h1>
+  <div class="sub">La provvigione si calcola sul <b>fatturato netto IVA</b>.</div>
+
+  <div class="card">
+    <label style="margin-top:0">Titolo (es. Incentivi dicembre)</label>
+    <input id="titolo" type="text" placeholder="Incentivi dicembre">
+    <label>Ruolo (es. Manager)</label>
+    <input id="ruolo" type="text" placeholder="Manager">
+    <div class="row">
+      <div><label>Provvigione base (%)</label><input id="perc" type="number" inputmode="decimal" step="0.1" min="0" value="7"></div>
+      <div><label>IVA (%)</label><input id="iva" type="number" inputmode="decimal" step="0.1" min="0" value="22"></div>
+    </div>
+    <label>Descrizione (es. per chi raggiunge la soglia…)</label>
+    <textarea id="note" placeholder="Il premio spetta a chi raggiunge la soglia di fatturato entro il 31/12…"></textarea>
+  </div>
+
+  <div class="card">
+    <b>Cosa inserisco?</b>
+    <div class="tabs" style="margin:10px 0 0">
+      <button id="d1" class="on" type="button">Fatturato lordo</button>
+      <button id="d2" type="button">Premio</button>
+    </div>
+    <div class="hint" id="drvHint"></div>
+
+    <div class="rhead"><span>Premio (€)</span><span>Fatturato lordo (€)</span><span>%</span><span></span></div>
+    <div id="rows"></div>
+    <button class="btn" type="button" id="add" style="width:100%">+ Aggiungi riga</button>
+    <div class="hint">Scrivi nella colonna con il bordo verde. L'altra (grigia) si calcola da sola; se ci scrivi sopra la imposti a mano (diventa gialla). La % vuota usa la provvigione base.</div>
+
+    <div class="opts">
+      <label class="chk"><input type="checkbox" id="arr"> <span id="arrLbl">Arrotonda il valore calcolato</span></label>
+      <div id="arrOpts" class="hide">
+        <div class="row">
+          <div><label style="margin-top:0">Arrotonda a multipli di</label>
+            <select id="step"><option value="1">1 €</option><option value="5">5 €</option><option value="10" selected>10 €</option><option value="50">50 €</option><option value="100">100 €</option></select></div>
+          <div><label style="margin-top:0">Direzione</label>
+            <select id="dir"><option value="vic">Al più vicino</option><option value="fav">A mio favore</option></select></div>
+        </div>
+      </div>
+      <label class="chk"><input type="checkbox" id="max"> Eroga la provvigione massima maturata</label>
+      <div class="hint">Con questa opzione il premio erogato è la provvigione realmente maturata: non perdi mai, ma il premio può risultare un po' diverso da quello scelto.</div>
+    </div>
+
+    <div id="msg2" class="msg1"></div>
+    <div class="scroll"><table id="res"></table></div>
+    <div class="note">Margine = provvigione maturata − premio erogato. Rosso = ci rimetti, verde = ti resta un margine. Il margine e la % si vedono solo qui, non nell'immagine.</div>
+  </div>
+
+  <div class="card">
+    <b>Anteprima da condividere</b>
+    <img id="prev" alt="Anteprima">
+    <div class="btns">
+      <button class="btn p" type="button" id="share">Condividi immagine</button>
+      <button class="btn" type="button" id="wa">Invia testo su WhatsApp</button>
+    </div>
+    <div class="msg" id="msg"></div>
+    <div class="note">Se il pulsante non apre la condivisione, tieni premuta l'immagine e scegli “Salva” o “Condividi”.</div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const fmt = n => new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(isFinite(n)?n:0);
+const num = v => { const x = parseFloat(String(v).replace(',','.')); return isFinite(x)?x:0; };
+const pct = x => (Math.round(x*10000)/100).toString().replace('.',',')+'%';
+const toStr = x => String(Number((Math.round(x*100)/100).toFixed(2)));
+const P = () => num($('perc').value)/100;
+const K = () => 1 + num($('iva').value)/100;
+let drv = 'lordo', blob = null, text = '', tm, cur = {head:[],w:[],rows:[]}, inputs = [];
+
+// a = premio, b = fatturato lordo, p = % facoltativa
+const state = { rows:[{a:'',b:'3000',p:''},{a:'',b:'5000',p:''},{a:'',b:'7000',p:''},{a:'',b:'20000',p:''}] };
+const pctOf = r => (r.p!=='' && num(r.p)>0) ? num(r.p)/100 : P();
+
+function opts(){ return {arr:$('arr').checked, step:num($('step').value)||1, dir:$('dir').value, maxE:$('max').checked}; }
+function roundL(x,o){ return o.dir==='fav' ? Math.ceil(x/o.step-1e-9)*o.step : Math.round(x/o.step)*o.step; }   // lordo: in alto = a favore
+function roundP(x,o){ return o.dir==='fav' ? Math.floor(x/o.step+1e-9)*o.step : Math.round(x/o.step)*o.step; }  // premio: in basso = a favore
+
+function calcRow(r){
+  const pc = pctOf(r), k = K(), o = opts();
+  const pk = drv==='lordo' ? 'b' : 'a', sk = drv==='lordo' ? 'a' : 'b';
+  const pv = num(r[pk]); if(pv<=0 || pc<=0) return null;
+  const ov = (r[sk]!=='' && num(r[sk])>0) ? num(r[sk]) : null;
+  let lordo, matur, erog, autoSec;
+  if(drv==='premio'){
+    const lordoT = pv/pc*k, lordoAuto = o.arr ? roundL(lordoT,o) : lordoT;
+    lordo = ov!==null ? ov : lordoAuto;
+    matur = lordo/k*pc;
+    erog = o.maxE ? matur : pv;
+    autoSec = lordoAuto;
+  } else {
+    lordo = pv; matur = lordo/k*pc;
+    const premAuto = o.maxE ? matur : (o.arr ? roundP(matur,o) : matur);
+    erog = ov!==null ? ov : premAuto;
+    autoSec = premAuto;
+  }
+  return {lordo, netto:lordo/k, pc, erog, matur, diff:matur-erog, manual:ov!==null, autoSec};
+}
+
+function renderRows(){
+  const cont=$('rows'); cont.innerHTML=''; inputs=[];
+  state.rows.forEach((r,i)=>{
+    const d=document.createElement('div'); d.className='rrow';
+    d.innerHTML='<input type="number" inputmode="decimal" min="0"><input type="number" inputmode="decimal" min="0"><input type="number" inputmode="decimal" min="0" step="0.1"><button type="button" aria-label="Elimina">×</button>';
+    const [ia,ib,ip,bx]=d.children;
+    ia.value=r.a; ib.value=r.b; ip.value=r.p;
+    const prim = drv==='premio' ? ia : ib, sec = drv==='premio' ? ib : ia;
+    prim.className='prim'; sec.className='sec';
+    ia.oninput=()=>{r.a=ia.value;update()};
+    ib.oninput=()=>{r.b=ib.value;update()};
+    ip.oninput=()=>{r.p=ip.value;update()};
+    bx.onclick=()=>{ if(state.rows.length>1){state.rows.splice(i,1);renderRows();update()} };
+    inputs.push({a:ia,b:ib,p:ip,prim,sec}); cont.appendChild(d);
+  });
+}
+
+function setDrv(n){
+  if(n===drv) return;
+  const res = state.rows.map(calcRow);
+  state.rows.forEach((r,i)=>{
+    const c = res[i]; if(!c) return;
+    if(n==='lordo'){ r.b = toStr(c.lordo); r.a = ''; }
+    else { r.a = toStr(c.erog); r.b = ''; }
+  });
+  drv = n;
+  $('d1').classList.toggle('on',n==='lordo'); $('d2').classList.toggle('on',n==='premio');
+  renderRows(); update();
+}
+
+function wrap(ctx,t,maxW){
+  const out=[];
+  String(t).split('\n').forEach(par=>{
+    let line='';
+    par.split(' ').forEach(w=>{
+      const test=line?line+' '+w:w;
+      if(ctx.measureText(test).width>maxW && line){out.push(line);line=w}else line=test;
+    });
+    out.push(line);
+  });
+  return out;
+}
+
+function draw(){
+  const d = cur;
+  const titolo = $('titolo').value.trim() || 'Calcolo provvigioni', note = $('note').value.trim(), ruolo = $('ruolo').value.trim();
+  const W=1080, pad=60, c=document.createElement('canvas'), ctx=c.getContext('2d');
+  const F='system-ui,-apple-system,"Segoe UI",Roboto,sans-serif';
+  c.width=W; c.height=3000;
+  ctx.font='32px '+F;
+  const noteLines = note ? wrap(ctx,note,W-2*pad) : [];
+  const rowH=84, headH=130;
+  const descH = noteLines.length ? noteLines.length*46+50 : 0;
+  const H = headH+70+descH+(d.rows.length+1)*rowH+40+90;
+  c.height=H;
+  ctx.fillStyle='#fff'; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='#0f6b5c'; ctx.fillRect(0,0,W,headH+30);
+  ctx.fillStyle='#fff'; ctx.font='bold 54px '+F; ctx.textBaseline='alphabetic'; ctx.textAlign='left';
+  let ts=54; while(ctx.measureText(titolo).width>W-2*pad && ts>28){ts-=2;ctx.font='bold '+ts+'px '+F}
+  ctx.fillText(titolo,pad,80);
+  ctx.font='34px '+F; ctx.fillStyle='#cfe9e3'; if(ruolo) ctx.fillText(ruolo,pad,130);
+  let y=headH+70;
+  if(noteLines.length){ ctx.fillStyle='#16212b'; ctx.font='32px '+F; ctx.textAlign='left'; let yy=y+10; noteLines.forEach(l=>{ctx.fillText(l,pad,yy+30);yy+=46}); y+=descH; }
+  const tw=W-2*pad, sum=d.w.reduce((a,b)=>a+b,0), cum=[0]; d.w.forEach(w=>cum.push(cum[cum.length-1]+w/sum*tw));
+  ctx.fillStyle='#e8f4f1'; ctx.fillRect(pad,y,tw,rowH);
+  ctx.fillStyle='#0f6b5c'; ctx.font='bold 28px '+F;
+  d.head.forEach((h,i)=>{ctx.textAlign=i===0?'left':'right';ctx.fillText(h,i===0?pad+20:pad+cum[i+1]-16,y+54)});
+  y+=rowH;
+  d.rows.forEach((r,ri)=>{
+    if(ri%2===1){ctx.fillStyle='#f6f8f9';ctx.fillRect(pad,y,tw,rowH)}
+    ctx.fillStyle='#16212b';
+    r.forEach((v,i)=>{ctx.font=(i===0?'bold ':'')+'32px '+F;ctx.textAlign=i===0?'left':'right';ctx.fillText(v,i===0?pad+20:pad+cum[i+1]-16,y+55)});
+    ctx.strokeStyle='#dfe5ea';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(pad,y+rowH);ctx.lineTo(W-pad,y+rowH);ctx.stroke();
+    y+=rowH;
+  });
+  ctx.textAlign='left';
+  ctx.fillStyle='#8a97a3'; ctx.font='24px '+F; ctx.fillText('Importi indicativi. Netto = lordo ÷ (1 + IVA).',pad,H-34);
+  $('prev').src = c.toDataURL('image/png');
+  c.toBlob(b=>{blob=b},'image/png');
+  text = titolo+(ruolo?'\n'+ruolo:'')+(note?'\n'+note:'')+'\n\n'+d.head.join(' | ')+'\n'+d.rows.map(r=>r.join(' | ')).join('\n');
+}
+
+function update(){
+  const res = state.rows.map(calcRow);
+  const ph = $('perc').value || '%';
+  inputs.forEach((x,i)=>{
+    const c=res[i];
+    x.p.placeholder = ph;
+    x.prim.placeholder = 'es. ' + (drv==='lordo' ? '3000' : '100');
+    x.sec.placeholder = c ? ('auto ' + toStr(c.autoSec)) : 'auto';
+    x.sec.classList.toggle('man', x.sec.value!=='');
+  });
+  $('arrLbl').textContent = drv==='premio' ? 'Arrotonda il fatturato lordo calcolato' : 'Arrotonda il premio calcolato';
+  $('dir').options[1].textContent = 'A mio favore (mai in perdita)';
+  $('drvHint').textContent = drv==='premio'
+    ? 'Scrivi i premi: il fatturato lordo da raggiungere si calcola da solo.'
+    : 'Scrivi i fatturati lordi: il premio (provvigione maturata) si calcola da solo.';
+
+  const hrows=[], rows=[], loss=[]; let nLoss=0, maxLoss=0, n=0;
+  res.forEach(c=>{
+    if(!c) return; n++;
+    const isLoss = c.diff < -0.005;
+    if(isLoss){nLoss++; maxLoss=Math.max(maxLoss,-c.diff);}
+    rows.push([fmt(c.lordo),fmt(c.netto),fmt(c.erog)]);
+    const mk = '<span class="'+(isLoss?'neg':'pos')+'">'+(isLoss?'−'+fmt(-c.diff):(c.diff>0.005?'+'+fmt(c.diff):'0'))+'</span>';
+    hrows.push([fmt(c.lordo)+(drv==='premio'&&c.manual?' ✎':''),fmt(c.netto),pct(c.pc),fmt(c.erog)+(drv==='lordo'&&c.manual?' ✎':''),mk]);
+    loss.push(isLoss);
+  });
+  let h='<thead><tr>'+['Lordo','Netto','%','Premio','Margine'].map(x=>'<th>'+x+'</th>').join('')+'</tr></thead><tbody>';
+  hrows.forEach((r,i)=>{ h+='<tr'+(loss[i]?' class="loss"':'')+'>'+r.map((c,j)=>'<td>'+(j===0?'<b>'+c+'</b>':c)+'</td>').join('')+'</tr>'; });
+  $('res').innerHTML = h+'</tbody>';
+  $('msg2').innerHTML = n===0 ? '' : (nLoss>0
+    ? '<span class="neg">⚠ Stai perdendo in '+nLoss+(nLoss===1?' riga':' righe')+' (fino a '+fmt(maxLoss)+'). Prova “A mio favore” oppure “Eroga la provvigione massima”.</span>'
+    : '<span class="pos">✓ Nessuna perdita: la provvigione maturata copre il premio.</span>');
+  cur = {head:['Fatturato lordo','Fatturato netto','Premio'], w:[1,1,1], rows};
+  clearTimeout(tm); tm=setTimeout(draw,150);
+}
+
+$('share').onclick = async () => {
+  const msg=$('msg'); msg.textContent='';
+  if(!blob){draw();msg.textContent='Riprova tra un secondo.';return}
+  const name=(($('titolo').value.trim()||'provvigioni').replace(/[^\w\-]+/g,'-'))+'.png';
+  const file=new File([blob],name,{type:'image/png'});
+  try{
+    if(navigator.canShare && navigator.canShare({files:[file]})){ await navigator.share({files:[file],title:$('titolo').value||'Provvigioni'}); return; }
+  }catch(e){ if(e&&e.name==='AbortError')return; }
+  try{
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); a.remove();
+    msg.textContent='Se non parte il download, tieni premuta l\'immagine qui sopra e salvala.';
+  }catch(e){ msg.textContent='Tieni premuta l\'immagine qui sopra e scegli Salva o Condividi.'; }
+};
+$('wa').onclick = () => { window.open('https://wa.me/?text='+encodeURIComponent(text),'_blank'); };
+
+['titolo','ruolo','perc','iva','note','step','dir'].forEach(id=>$(id).addEventListener('input',update));
+['arr','max'].forEach(id=>$(id).addEventListener('change',()=>{ $('arrOpts').classList.toggle('hide',!$('arr').checked); update(); }));
+$('add').onclick=()=>{state.rows.push({a:'',b:'',p:''});renderRows();update()};
+$('d1').onclick=()=>setDrv('lordo'); $('d2').onclick=()=>setDrv('premio');
+renderRows();
+update();
+</script>
+</body>
+</html>
