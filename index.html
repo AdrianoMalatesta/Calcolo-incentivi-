@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Provvigioni">
+<title>Calcolatore provvigioni manager</title>
+<style>
+  :root{--bg:#f4f6f8;--card:#fff;--ink:#16212b;--mut:#5d6b78;--line:#dfe5ea;--acc:#0f6b5c;--acc2:#e8f4f1}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  .wrap{max-width:720px;margin:0 auto;padding:16px}
+  h1{font-size:20px;margin:4px 0 2px}
+  .sub{color:var(--mut);font-size:14px;margin-bottom:14px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:14px}
+  .tabs{display:flex;gap:6px;margin-bottom:14px}
+  .tabs button{flex:1;padding:12px 8px;border:1px solid var(--line);background:#fff;border-radius:12px;font:600 14px inherit;font-family:inherit;color:var(--mut);cursor:pointer}
+  .tabs button.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+  label{display:block;font-size:13px;color:var(--mut);margin:10px 0 4px;font-weight:600}
+  input,textarea{width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;font:inherit;font-size:17px;background:#fff;color:var(--ink)}
+  textarea{min-height:72px;resize:vertical}
+  input:focus,textarea:focus{outline:2px solid var(--acc);border-color:var(--acc)}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .hint{font-size:12px;color:var(--mut);margin-top:4px}
+  .res{background:var(--acc2);border:1px solid #c5e3dc;border-radius:12px;padding:12px;margin-top:12px}
+  .line{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px dashed #c5e3dc}
+  .line:last-child{border:0}
+  .big{font-size:22px;color:var(--acc)}
+  .btns{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+  .btn{flex:1;min-width:140px;text-align:center;padding:13px;border-radius:10px;border:1px solid var(--acc);background:#fff;color:var(--acc);font:600 15px inherit;font-family:inherit;cursor:pointer;text-decoration:none}
+  .btn.p{background:var(--acc);color:#fff}
+  .note{font-size:12px;color:var(--mut)}
+  .hide{display:none}
+  #prev{width:100%;border:1px solid var(--line);border-radius:10px;margin-top:10px;background:#fff}
+  .msg{font-size:13px;color:var(--acc);margin-top:6px;min-height:18px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Calcolatore provvigioni manager</h1>
+  <div class="sub">La provvigione si calcola sul <b>fatturato netto IVA</b>.</div>
+
+  <div class="card">
+    <label style="margin-top:0">Titolo (es. Incentivi dicembre)</label>
+    <input id="titolo" type="text" placeholder="Incentivi dicembre">
+    <div class="row">
+      <div><label>Provvigione (%)</label><input id="perc" type="number" inputmode="decimal" step="0.1" min="0" value="7"></div>
+      <div><label>IVA (%)</label><input id="iva" type="number" inputmode="decimal" step="0.1" min="0" value="22"></div>
+    </div>
+    <label>Note (es. per chi raggiunge la soglia…)</label>
+    <textarea id="note" placeholder="Il premio si ottiene raggiungendo la soglia di fatturato entro il 31/12…"></textarea>
+  </div>
+
+  <div class="tabs">
+    <button id="t1" class="on" type="button">Da fatturato → provvigione</button>
+    <button id="t2" type="button">Da premio → soglie</button>
+  </div>
+
+  <div id="m1" class="card">
+    <div class="row">
+      <div><label style="margin-top:0">Fatturato lordo (€)</label><input id="lordo" type="number" inputmode="decimal" min="0" placeholder="es. 5000"></div>
+      <div><label style="margin-top:0">Fatturato netto IVA (€)</label><input id="netto" type="number" inputmode="decimal" min="0" placeholder="es. 4098,36"></div>
+    </div>
+    <div class="hint">Compila uno dei due: l'altro si calcola da solo.</div>
+    <div class="res" id="r1"></div>
+  </div>
+
+  <div id="m2" class="card hide">
+    <label style="margin-top:0">Premi da raggiungere (€), separati da virgola</label>
+    <textarea id="premi">100, 200, 300, 500, 1000</textarea>
+    <div class="hint">Per ogni premio vedi il fatturato netto e lordo da raggiungere.</div>
+  </div>
+
+  <div class="card">
+    <b>Anteprima da condividere</b>
+    <img id="prev" alt="Anteprima">
+    <div class="btns">
+      <button class="btn p" type="button" id="share">Condividi immagine</button>
+      <button class="btn" type="button" id="wa">Invia testo su WhatsApp</button>
+    </div>
+    <div class="msg" id="msg"></div>
+    <div class="note">Se il pulsante non apre la condivisione, tieni premuta l'immagine e scegli “Salva” o “Condividi”.</div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const fmt = n => new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(isFinite(n)?n:0);
+const num = v => { const x = parseFloat(String(v).replace(',','.')); return isFinite(x)?x:0; };
+const P = () => num($('perc').value)/100;
+const K = () => 1 + num($('iva').value)/100;
+let mode = 1, blob = null, text = '';
+
+// sincronizza lordo/netto
+function fromLordo(){ const l=$('lordo').value; $('netto').value = l===''?'':(num(l)/K()).toFixed(2); update(); }
+function fromNetto(){ const n=$('netto').value; $('lordo').value = n===''?'':(num(n)*K()).toFixed(2); update(); }
+
+function data(){
+  const pc = $('perc').value||0, iva = $('iva').value||0;
+  if(mode===1){
+    const lor = num($('lordo').value), net = lor/K();
+    return {head:['Voce','Importo'],
+      rows:[['Fatturato lordo',fmt(lor)],['Fatturato netto IVA',fmt(net)],['Provvigione '+pc+'%',fmt(net*P())]],
+      sub:'Provvigione '+pc+'% sul netto IVA ('+iva+'%)'};
+  }
+  const prem = $('premi').value.split(/[;,\s]+/).map(num).filter(x=>x>0);
+  const rows = P()>0 ? prem.map(pr=>{const n=pr/P();return [fmt(pr),fmt(n),fmt(n*K())];}) : [];
+  return {head:['Premio','Fatturato netto','Fatturato lordo'], rows,
+    sub:'Provvigione '+pc+'% sul netto IVA ('+iva+'%)'};
+}
+
+function wrap(ctx,t,maxW){
+  const out=[];
+  String(t).split('\n').forEach(par=>{
+    let line='';
+    par.split(' ').forEach(w=>{
+      const test=line?line+' '+w:w;
+      if(ctx.measureText(test).width>maxW && line){out.push(line);line=w}else line=test;
+    });
+    out.push(line);
+  });
+  return out;
+}
+
+function draw(){
+  const d = data(), titolo = $('titolo').value.trim() || 'Calcolo provvigioni', note = $('note').value.trim();
+  const W=1080, pad=60, c=document.createElement('canvas'), ctx=c.getContext('2d');
+  const F='system-ui,-apple-system,"Segoe UI",Roboto,sans-serif';
+  c.width=W; c.height=3000; // misura
+  ctx.font='32px '+F;
+  const noteLines = note ? wrap(ctx,note,W-2*pad) : [];
+  const rowH=84, headH=130;
+  const H = headH+70+ (d.rows.length+1)*rowH + 40 + (noteLines.length? 70+noteLines.length*46+30 : 0) + 90;
+  c.height=H;
+  ctx.fillStyle='#fff'; ctx.fillRect(0,0,W,H);
+  // header
+  ctx.fillStyle='#0f6b5c'; ctx.fillRect(0,0,W,headH+30);
+  ctx.fillStyle='#fff'; ctx.font='bold 54px '+F; ctx.textBaseline='alphabetic';
+  let ts=54; while(ctx.measureText(titolo).width>W-2*pad && ts>28){ts-=2;ctx.font='bold '+ts+'px '+F}
+  ctx.fillText(titolo,pad,80);
+  ctx.font='30px '+F; ctx.fillStyle='#cfe9e3'; ctx.fillText(d.sub,pad,130);
+  // tabella
+  let y=headH+70; const n=d.head.length, colW=(W-2*pad)/n;
+  ctx.fillStyle='#e8f4f1'; ctx.fillRect(pad,y,W-2*pad,rowH);
+  ctx.fillStyle='#0f6b5c'; ctx.font='bold 30px '+F;
+  d.head.forEach((h,i)=>{ctx.textAlign=i===0?'left':'right';ctx.fillText(h,i===0?pad+20:pad+colW*(i+1)-20,y+54)});
+  y+=rowH;
+  d.rows.forEach((r,ri)=>{
+    if(ri%2===1){ctx.fillStyle='#f6f8f9';ctx.fillRect(pad,y,W-2*pad,rowH)}
+    ctx.fillStyle='#16212b';
+    r.forEach((v,i)=>{ctx.font=(i===0?'bold ':'')+'34px '+F;ctx.textAlign=i===0?'left':'right';ctx.fillText(v,i===0?pad+20:pad+colW*(i+1)-20,y+55)});
+    ctx.strokeStyle='#dfe5ea';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(pad,y+rowH);ctx.lineTo(W-pad,y+rowH);ctx.stroke();
+    y+=rowH;
+  });
+  // note
+  ctx.textAlign='left';
+  if(noteLines.length){
+    y+=50; ctx.fillStyle='#0f6b5c'; ctx.font='bold 32px '+F; ctx.fillText('Note',pad,y);
+    ctx.fillStyle='#16212b'; ctx.font='32px '+F; y+=16;
+    noteLines.forEach(l=>{y+=46;ctx.fillText(l,pad,y)});
+  }
+  ctx.fillStyle='#8a97a3'; ctx.font='24px '+F; ctx.fillText('Importi indicativi. Netto = lordo ÷ (1 + IVA).',pad,H-34);
+  $('prev').src = c.toDataURL('image/png');
+  c.toBlob(b=>{blob=b},'image/png');
+  // testo
+  text = titolo+'\n'+d.sub+'\n\n'+d.rows.map(r=>r.join(' | ')).join('\n')+(note?'\n\nNote: '+note:'');
+}
+
+let tm; function update(){
+  // riepilogo mod. 1
+  const lor=num($('lordo').value), net=lor/K();
+  $('r1').innerHTML =
+    `<div class="line"><span>Fatturato lordo</span><b>${fmt(lor)}</b></div>`+
+    `<div class="line"><span>Fatturato netto IVA</span><b>${fmt(net)}</b></div>`+
+    `<div class="line"><span>Provvigione (${$('perc').value||0}%)</span><b class="big">${fmt(net*P())}</b></div>`;
+  clearTimeout(tm); tm=setTimeout(draw,150);
+}
+
+$('share').onclick = async () => {
+  const msg=$('msg'); msg.textContent='';
+  if(!blob){draw();msg.textContent='Riprova tra un secondo.';return}
+  const name=(($('titolo').value.trim()||'provvigioni').replace(/[^\w\-]+/g,'-'))+'.png';
+  const file=new File([blob],name,{type:'image/png'});
+  try{
+    if(navigator.canShare && navigator.canShare({files:[file]})){ await navigator.share({files:[file],title:$('titolo').value||'Provvigioni'}); return; }
+  }catch(e){ if(e&&e.name==='AbortError')return; }
+  try{
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); a.remove();
+    msg.textContent='Se non parte il download, tieni premuta l\'immagine qui sopra e salvala.';
+  }catch(e){ msg.textContent='Tieni premuta l\'immagine qui sopra e scegli Salva o Condividi.'; }
+};
+$('wa').onclick = () => { window.open('https://wa.me/?text='+encodeURIComponent(text),'_blank'); };
+
+['titolo','perc','iva','note','premi'].forEach(id=>$(id).addEventListener('input',()=>{ if(id==='iva'||id==='perc') fromLordo(); else update(); }));
+$('lordo').addEventListener('input',fromLordo);
+$('netto').addEventListener('input',fromNetto);
+function tab(n){ mode=n;
+  $('m1').classList.toggle('hide',n!==1); $('m2').classList.toggle('hide',n!==2);
+  $('t1').classList.toggle('on',n===1); $('t2').classList.toggle('on',n===2); update(); }
+$('t1').onclick=()=>tab(1); $('t2').onclick=()=>tab(2);
+update();
+</script>
+</body>
+</html>
